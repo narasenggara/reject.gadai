@@ -12,12 +12,18 @@
         background: #f0f8ff;
         color: #333;
     }
-    h2 {
+    h2, h3 {
         text-align: center;
-        background: #1e90ff;
         color: white;
         padding: 12px;
         border-radius: 8px;
+    }
+    h2 {
+        background: #1e90ff;
+    }
+    h3 {
+        background: #1e90ff;
+        margin-top: 30px;
     }
     .container {
         background: white;
@@ -61,6 +67,22 @@
         margin-top: 10px;
         color: #1e90ff;
     }
+    #history {
+        max-width: 500px;
+        margin: auto;
+    }
+    #history ul {
+        list-style: none;
+        padding: 0;
+    }
+    #history li {
+        border: 1px solid #ccc;
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        background: #fafafa;
+        white-space: pre-line;
+    }
 </style>
 </head>
 <body>
@@ -90,9 +112,27 @@
     <div id="loading">🔍 Membaca teks...</div>
 </div>
 
+<div id="history">
+    <h3>📜 History Laporan Reject</h3>
+    <ul id="historyList"></ul>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 let uploadedFile = null;
+
+// Load history dari localStorage
+let historyData = JSON.parse(localStorage.getItem('rejectHistory')) || [];
+const historyList = document.getElementById("historyList");
+function renderHistory() {
+    historyList.innerHTML = '';
+    historyData.slice().reverse().forEach(item => {
+        const li = document.createElement("li");
+        li.innerText = item;
+        historyList.appendChild(li);
+    });
+}
+renderHistory();
 
 document.getElementById("fileInput").addEventListener("change", async function() {
     const file = this.files[0];
@@ -121,6 +161,15 @@ document.getElementById("fileInput").addEventListener("change", async function()
     if (alasanMatch) document.getElementById("alasan").value = alasanMatch[1].trim();
     if (ketMatch) document.getElementById("keterangan").value = ketMatch[1].trim();
     if (barangMatch) document.getElementById("barang").value = barangMatch[1].trim();
+
+    // Auto copy caption setelah OCR
+    const autoCaption = `Reject\nBarang : ${document.getElementById("barang").value}\nJam : ${document.getElementById("jam").value}\nKet : ${document.getElementById("keterangan").value}\nNama : ${document.getElementById("nama").value}\nAlasan : ${document.getElementById("alasan").value}`;
+    try {
+        await navigator.clipboard.writeText(autoCaption);
+        console.log("Caption otomatis disalin ke clipboard ✅");
+    } catch (err) {
+        console.warn("Gagal menyalin caption:", err);
+    }
 });
 
 document.getElementById("shareBtn").addEventListener("click", async () => {
@@ -131,6 +180,11 @@ document.getElementById("shareBtn").addEventListener("click", async () => {
     const alasan = document.getElementById("alasan").value;
 
     const caption = `Reject\nBarang : ${barang}\nJam : ${jam}\nKet : ${ket}\nNama : ${nama}\nAlasan : ${alasan}`;
+
+    // Simpan ke history
+    historyData.push(caption);
+    localStorage.setItem('rejectHistory', JSON.stringify(historyData));
+    renderHistory();
 
     // Auto copy caption ke clipboard
     try {
