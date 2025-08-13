@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laporan Reject Gadai</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f8f5f1;
+        margin: 0;
+        padding: 0;
+        color: #333;
+    }
+    header {
+        background-color: #efeae4;
+        padding: 15px;
+        text-align: center;
+        font-size: 1.4em;
+        font-weight: bold;
+        color: #444;
+    }
+    main {
+        padding: 15px;
+        max-width: 600px;
+        margin: auto;
+    }
+    .form-group {
+        margin-bottom: 12px;
+    }
+    label {
+        display: block;
+        margin-bottom: 5px;
+    }
+    input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-sizing: border-box;
+    }
+    button {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1em;
+    }
+    .btn-primary {
+        background-color: #d8cfc4;
+        color: #333;
+    }
+    .btn-danger {
+        background-color: #e57373;
+        color: white;
+        margin-left: 5px;
+    }
+    .report-item {
+        background: white;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+</style>
+</head>
+<body>
+    <header>Laporan Reject Gadai</header>
+    <main>
+        <div class="form-group">
+            <label>Nama:</label>
+            <input type="text" id="nama" placeholder="Masukkan nama Anda">
+        </div>
+        <div class="form-group">
+            <label>Barang:</label>
+            <input type="text" id="barang" readonly>
+        </div>
+        <div class="form-group">
+            <label>Jam:</label>
+            <input type="text" id="jam" readonly>
+        </div>
+        <div class="form-group">
+            <label>Keterangan:</label>
+            <input type="text" id="keterangan" readonly>
+        </div>
+        <div class="form-group">
+            <label>Alasan:</label>
+            <input type="text" id="alasan" readonly>
+        </div>
+        <div class="form-group">
+            <label>Upload Invoice:</label>
+            <input type="file" id="invoice" accept="image/*">
+        </div>
+        <button class="btn-primary" onclick="simpanLaporan()">Simpan Laporan</button>
+
+        <h3>Daftar Laporan</h3>
+        <div id="laporan-list"></div>
+    </main>
+
+<script>
+let laporan = JSON.parse(localStorage.getItem('laporanRejectGadai') || '[]');
+renderLaporan();
+
+document.getElementById('invoice').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // set jam otomatis saat upload
+    document.getElementById('jam').value = new Date().toLocaleTimeString();
+
+    // OCR baca teks dari gambar
+    Tesseract.recognize(file, 'eng', { logger: info => console.log(info) })
+        .then(({ data: { text } }) => {
+            console.log("OCR result:", text);
+            // parsing sederhana dari teks invoice
+            let barang = '';
+            let ket = '';
+            let alasan = '';
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+
+            // contoh pencarian berdasarkan kata kunci
+            for (let line of lines) {
+                if (!barang && /barang/i.test(line)) barang = line.replace(/.*barang[: ]/i, '');
+                if (!ket && /keterangan/i.test(line)) ket = line.replace(/.*keterangan[: ]/i, '');
+                if (!alasan && /alasan/i.test(line)) alasan = line.replace(/.*alasan[: ]/i, '');
+            }
+
+            document.getElementById('barang').value = barang || '(Tidak terbaca)';
+            document.getElementById('keterangan').value = ket || '(Tidak terbaca)';
+            document.getElementById('alasan').value = alasan || '(Tidak terbaca)';
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Gagal membaca teks dari gambar");
+        });
+});
+
+function simpanLaporan() {
+    const nama = document.getElementById('nama').value.trim();
+    const barang = document.getElementById('barang').value.trim();
+    const jam = document.getElementById('jam').value.trim();
+    const ket = document.getElementById('keterangan').value.trim();
+    const alasan = document.getElementById('alasan').value.trim();
+
+    if (!nama) return alert('Nama wajib diisi');
+    if (!barang) return alert('Barang belum terisi (upload invoice)');
+
+    laporan.push({ nama, barang, jam, ket, alasan });
+    localStorage.setItem('laporanRejectGadai', JSON.stringify(laporan));
+    renderLaporan();
+
+    // reset form
+    document.getElementById('invoice').value = '';
+    document.getElementById('barang').value = '';
+    document.getElementById('jam').value = '';
+    document.getElementById('keterangan').value = '';
+    document.getElementById('alasan').value = '';
+}
+
+function renderLaporan() {
+    const list = document.getElementById('laporan-list');
+    list.innerHTML = '';
+    laporan.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'report-item';
+        div.innerHTML = `
+            <strong>${item.barang}</strong><br>
+            Jam: ${item.jam}<br>
+            Keterangan: ${item.ket}<br>
+            Alasan: ${item.alasan}<br>
+            Nama: ${item.nama}<br>
+            <button onclick="shareWA(${idx})">Share WA</button>
+            <button class='btn-danger' onclick="hapusLaporan(${idx})">Hapus</button>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function shareWA(idx) {
+    const item = laporan[idx];
+    const pesan = `Reject\nBarang: ${item.barang}\nJam: ${item.jam}\nKeterangan: ${item.ket}\nAlasan: ${item.alasan}\nNama: ${item.nama}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(pesan)}`);
+}
+
+function hapusLaporan(idx) {
+    if (confirm('Hapus laporan ini?')) {
+        laporan.splice(idx, 1);
+        localStorage.setItem('laporanRejectGadai', JSON.stringify(laporan));
+        renderLaporan();
+    }
+}
+</script>
+</body>
+</html>
