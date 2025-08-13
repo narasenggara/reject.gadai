@@ -1,148 +1,309 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Laporan Reject Gadai</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LAPORAN REJECT GADAI</title>
+
+<!-- OCR -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #f8f5f1;
-        margin: 0;
-        padding: 0;
-        color: #333;
-    }
-    header {
-        background-color: #efeae4;
-        padding: 15px;
-        text-align: center;
-        font-size: 1.4em;
-        font-weight: bold;
-        color: #444;
-    }
-    main {
-        padding: 15px;
-        max-width: 600px;
-        margin: auto;
-    }
-    .form-group {
-        margin-bottom: 12px;
-    }
-    label {
-        display: block;
-        margin-bottom: 5px;
-    }
-    input, textarea {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        box-sizing: border-box;
-    }
-    button {
-        padding: 10px 15px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 1em;
-    }
-    .btn-primary {
-        background-color: #d8cfc4;
-        color: #333;
-    }
-    .btn-danger {
-        background-color: #e57373;
-        color: white;
-        margin-left: 5px;
-    }
-    .report-item {
-        background: white;
-        border-radius: 10px;
-        padding: 10px;
-        margin-bottom: 10px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
+  :root{
+    --bg: #f3f7fb;
+    --card: #ffffff;
+    --line: #e3edf7;
+    --text: #1f2a44;
+    --muted:#5e6b86;
+    --accent:#2a79ff;
+    --accent-2:#1bbf8a;
+    --danger:#e75c6b;
+    --radius:16px;
+    --shadow: 0 8px 20px rgba(28,74,146,.08);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font: 16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    padding: clamp(12px,2.5vw,28px);
+  }
+  .wrap{max-width:840px;margin:0 auto}
+  header{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .title{
+    font-weight:800; letter-spacing:.2px;
+    font-size: clamp(20px,4vw,28px);
+    padding:10px 14px; border-radius:12px;
+    background: linear-gradient(180deg,#eaf3ff,#dfeeff);
+    border:1px solid #d4e4ff; box-shadow: var(--shadow);
+  }
+  .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--muted)}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px}
+  .grid{display:grid; gap:14px}
+  .grid-2{grid-template-columns:1fr}
+  @media (min-width:880px){ .grid-2{grid-template-columns:1.05fr .95fr} }
+
+  label{font-size:13px;color:var(--muted);font-weight:700}
+  input,textarea,button{
+    width:100%; border:1px solid var(--line); border-radius:12px; padding:12px 14px; font-size:16px;
+  }
+  textarea{resize:vertical; min-height:92px}
+  input:focus,textarea:focus{outline:2px solid #cfe0ff; border-color:#cfe0ff; background:#fcfeff}
+  .row{display:grid; gap:10px; grid-template-columns:1fr 1fr}
+  @media (max-width:520px){ .row{grid-template-columns:1fr} }
+
+  .btn{cursor:pointer; font-weight:800; letter-spacing:.2px}
+  .btn-primary{background:var(--accent); color:#fff; border:none}
+  .btn-secondary{background:#fff; color:var(--accent); border:1px solid #cfe0ff}
+  .btn-success{background:var(--accent-2); color:#fff; border:none}
+  .btn-danger{background:#fff; color:var(--danger); border:1px solid #ffd9de}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap}
+
+  .list{display:grid; gap:12px}
+  .item{background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px}
+  .item h4{margin:0 0 6px 0; font-size:16px}
+  .sub{color:var(--muted); font-size:13px}
+
+  .note{font-size:12px; color:var(--muted)}
+  .progress{display:flex; align-items:center; gap:10px; font-size:14px; color:var(--muted)}
+  .spin{width:18px;height:18px;border-radius:50%;border:3px solid #d9e7ff;border-top-color:#7aa7ff;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
-    <header>Laporan Reject Gadai</header>
-    <main>
-        <div class="form-group">
-            <label>Nama:</label>
-            <input type="text" id="nama" placeholder="Masukkan nama Anda">
+  <div class="wrap">
+    <header>
+      <div class="title">LAPORAN REJECT GADAI</div>
+      <div class="pill">Offline • File tidak di-upload</div>
+    </header>
+
+    <section class="grid grid-2">
+      <!-- Kiri: Upload & Form -->
+      <div class="card grid">
+        <div class="grid">
+          <label for="invoice">Upload Invoice (gambar)</label>
+          <input id="invoice" type="file" accept="image/*" />
+          <div class="note">Semua proses OCR dilakukan di perangkat ini. Tidak ada upload ke server.</div>
         </div>
-        <div class="form-group">
-            <label>Barang:</label>
-            <input type="text" id="barang" placeholder="Nama barang" readonly>
+
+        <div id="ocrProgress" class="progress" style="display:none">
+          <div class="spin"></div><span id="ocrText">Menjalankan OCR…</span>
         </div>
-        <div class="form-group">
-            <label>Jam:</label>
-            <input type="text" id="jam" readonly>
+
+        <div class="grid">
+          <label>Barang</label>
+          <input id="barang" placeholder="Isi manual / hasil parsing" />
         </div>
-        <div class="form-group">
-            <label>Keterangan:</label>
-            <input type="text" id="keterangan" readonly>
+
+        <div class="row">
+          <div>
+            <label>Jam</label>
+            <input id="jam" placeholder="HH:MM (auto saat upload)" />
+          </div>
+          <div>
+            <label>Nama</label>
+            <input id="nama" placeholder="Nama petugas (manual)" />
+          </div>
         </div>
-        <div class="form-group">
-            <label>Alasan:</label>
-            <input type="text" id="alasan" readonly>
+
+        <div class="grid">
+          <label>Keterangan (hasil OCR penuh)</label>
+          <textarea id="ket" placeholder="Otomatis dari OCR. Bisa edit manual."></textarea>
         </div>
-        <div class="form-group">
-            <label>Upload Invoice:</label>
-            <input type="file" id="invoice" accept="image/*">
+
+        <div class="grid">
+          <label>Alasan</label>
+          <input id="alasan" placeholder="Isi manual / hasil parsing" />
         </div>
-        <button class="btn-primary" onclick="simpanLaporan()">Simpan Laporan</button><h3>Daftar Laporan</h3>
-    <div id="laporan-list"></div>
-</main>
+
+        <div class="toolbar">
+          <button id="saveBtn" class="btn btn-primary">Simpan ke Laporan</button>
+          <button id="shareBtn" class="btn btn-secondary">Share WA (Form Saat Ini)</button>
+        </div>
+      </div>
+
+      <!-- Kanan: Daftar -->
+      <div class="card grid">
+        <div>
+          <div style="font-weight:800; margin-bottom:6px">Laporan Tersimpan</div>
+          <div class="note">Disimpan lokal di perangkat ini (localStorage).</div>
+        </div>
+        <div id="list" class="list"></div>
+      </div>
+    </section>
+
+    <p class="note" style="margin-top:12px">
+      Tip GitHub Pages: simpan file ini sebagai <b>index.html</b> di root repo, aktifkan <b>Settings → Pages</b>, lalu buka via
+      <code>https://USERNAME.github.io/NAMA_REPO/</code> (bukan url github.com yang menampilkan isi file).
+    </p>
+  </div>
 
 <script>
-let laporan = JSON.parse(localStorage.getItem('laporanRejectGadai') || '[]');
-renderLaporan();
+  // ====== DB Lokal ======
+  const DB_KEY = 'rejectGadaiReports_v2';
+  const loadDB = () => { try { return JSON.parse(localStorage.getItem(DB_KEY) || '[]'); } catch { return []; } };
+  const saveDB = rows => localStorage.setItem(DB_KEY, JSON.stringify(rows));
 
-function simpanLaporan() {
-    const nama = document.getElementById('nama').value.trim();
-    const barang = document.getElementById('barang').value.trim();
-    const jam = document.getElementById('jam').value.trim() || new Date().toLocaleTimeString();
-    const ket = document.getElementById('keterangan').value.trim();
-    const alasan = document.getElementById('alasan').value.trim();
+  // ====== Elemen ======
+  const invoiceEl = document.getElementById('invoice');
+  const barangEl  = document.getElementById('barang');
+  const jamEl     = document.getElementById('jam');
+  const namaEl    = document.getElementById('nama');
+  const ketEl     = document.getElementById('ket');
+  const alasanEl  = document.getElementById('alasan');
+  const listEl    = document.getElementById('list');
+  const saveBtn   = document.getElementById('saveBtn');
+  const shareBtn  = document.getElementById('shareBtn');
+  const ocrP      = document.getElementById('ocrProgress');
+  const ocrText   = document.getElementById('ocrText');
 
-    if (!nama) return alert('Nama wajib diisi');
+  // ====== Utils ======
+  const nowTime = () => new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  const escapeHtml = s => (s||'').replace(/[&<>\"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+  const toDateISO = (d=new Date())=>{
+    const tz = d.getTimezoneOffset();
+    const local = new Date(d.getTime()-tz*60000);
+    return local.toISOString().slice(0,10);
+  };
 
-    laporan.push({ nama, barang, jam, ket, alasan });
-    localStorage.setItem('laporanRejectGadai', JSON.stringify(laporan));
-    renderLaporan();
-}
+  // ====== OCR Handler ======
+  invoiceEl.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-function renderLaporan() {
-    const list = document.getElementById('laporan-list');
-    list.innerHTML = '';
-    laporan.forEach((item, idx) => {
-        const div = document.createElement('div');
-        div.className = 'report-item';
-        div.innerHTML = `
-            <strong>${item.barang}</strong><br>
-            Jam: ${item.jam}<br>
-            Keterangan: ${item.ket}<br>
-            Alasan: ${item.alasan}<br>
-            Nama: ${item.nama}<br>
-            <button onclick="shareWA(${idx})">Share WA</button>
-            <button class='btn-danger' onclick="hapusLaporan(${idx})">Hapus</button>
-        `;
-        list.appendChild(div);
-    });
-}
+    // Set jam otomatis
+    if (!jamEl.value) jamEl.value = nowTime();
 
-function shareWA(idx) {
-    const item = laporan[idx];
-    const pesan = `Reject\nBarang: ${item.barang}\nJam: ${item.jam}\nKeterangan: ${item.ket}\nAlasan: ${item.alasan}\nNama: ${item.nama}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(pesan)}`);
-}
+    // Jalankan OCR eng+ind dengan progress
+    ocrP.style.display = 'flex'; ocrText.textContent = 'Menjalankan OCR…';
+    try {
+      const { data } = await Tesseract.recognize(file, 'eng+ind', {
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            ocrText.textContent = `OCR ${(m.progress*100).toFixed(0)}%`;
+          }
+        }
+      });
+      const raw = (data?.text || '').trim();
+      const clean = raw.replace(/\s+/g,' ').trim(); // bersihkan untuk parsing
 
-function hapusLaporan(idx) {
-    if (confirm('Hapus laporan ini?')) {
-        laporan.splice(idx, 1);
-        localStorage.setItem('laporanRejectGadai', JSON.stringify(laporan));
-        renderLaporan();
+      // Fallback utama: taruh hasil OCR penuh ke Keterangan
+      ketEl.value = raw || '(Tidak terbaca)';
+
+      // Parsing longgar (opsional): coba ambil Barang / Alasan jika ada
+      // Pola "Label : nilai" atau "Label- nilai"
+      const getAfter = (labelArr) => {
+        for (const label of labelArr) {
+          const re1 = new RegExp(`${label}\\s*[:\\-]\\s*(.+?)(?=\\s+(Barang|Ket\\.?|Keterangan|Alasan|Nama|Jam|$))`,'i');
+          const re2 = new RegExp(`${label}\\s*[:\\-]?\\s*(.+)`,'i');
+          const m1 = clean.match(re1);
+          if (m1) return m1[1].trim();
+          const m2 = clean.match(re2);
+          if (m2) return m2[1].trim();
+        }
+        return '';
+      };
+
+      const guessBarang = getAfter(['Barang','Produk','Item']);
+      const guessAlasan = getAfter(['Alasan','Alasan Reject','Reason']);
+      const guessKet    = getAfter(['Keterangan','Ket','Catatan']);
+
+      if (guessBarang && !barangEl.value) barangEl.value = guessBarang;
+      if (guessAlasan && !alasanEl.value) alasanEl.value = guessAlasan;
+      // Jika ada ket terstruktur, timpa keterangan penuh
+      if (guessKet) ketEl.value = guessKet;
+
+    } catch(err){
+      console.error(err);
+      alert('Gagal membaca teks dari gambar. Coba ulangi atau gunakan foto yang lebih jelas.');
+    } finally {
+      ocrP.style.display = 'none';
     }
-}
-</script></body>
+  });
+
+  // ====== Render List ======
+  function renderList(){
+    const rows = loadDB();
+    listEl.innerHTML = '';
+    if (!rows.length){
+      const empty = document.createElement('div');
+      empty.className='note';
+      empty.textContent='Belum ada laporan tersimpan.';
+      listEl.appendChild(empty);
+      return;
+    }
+    rows
+      .sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam))
+      .forEach((r,idx)=>{
+        const div = document.createElement('div');
+        div.className='item';
+        div.innerHTML = `
+          <h4>${escapeHtml(r.barang || '(Tanpa nama barang)')}</h4>
+          <div class="sub">Tanggal: ${r.tanggal} • Jam: ${escapeHtml(r.jam||'-')}</div>
+          <div class="sub">Ket: ${escapeHtml(r.ket||'-')}</div>
+          <div class="sub">Alasan: ${escapeHtml(r.alasan||'-')}</div>
+          <div class="sub">Nama: ${escapeHtml(r.nama||'-')}</div>
+          <div class="toolbar" style="margin-top:10px">
+            <button class="btn btn-secondary" onclick='shareWA(${JSON.stringify(r)})'>Share WA</button>
+            <button class="btn btn-danger" onclick="del(${idx})">Hapus</button>
+          </div>
+        `;
+        listEl.appendChild(div);
+      });
+  }
+
+  // ====== Actions ======
+  function shareWA(r){
+    const msg = `Reject\nBarang : ${r.barang||''}\nJam : ${r.jam||''}\nKet : ${r.ket||''}\nNama : ${r.nama||''}\nAlasan : ${r.alasan||''}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  }
+
+  function del(idx){
+    if (!confirm('Hapus laporan ini?')) return;
+    const rows = loadDB();
+    rows.splice(idx,1);
+    saveDB(rows);
+    renderList();
+  }
+
+  saveBtn.addEventListener('click', ()=>{
+    const row = {
+      tanggal: toDateISO(new Date()),
+      barang : (barangEl.value||'').trim(),
+      jam    : (jamEl.value||nowTime()),
+      ket    : (ketEl.value||'').trim(),
+      nama   : (namaEl.value||'').trim(),
+      alasan : (alasanEl.value||'').trim()
+    };
+    if (!row.nama){ alert('Nama wajib diisi.'); return; }
+    if (!row.barang){ alert('Barang wajib diisi.'); return; }
+
+    const rows = loadDB(); rows.push(row); saveDB(rows);
+    // reset ringan (invoice tidak disimpan)
+    barangEl.value=''; ketEl.value=''; alasanEl.value='';
+    // biarkan jam & nama tetap, biar input cepat untuk banyak invoice
+    renderList();
+    alert('Tersimpan.');
+  });
+
+  shareBtn.addEventListener('click', ()=>{
+    const r = {
+      barang : (barangEl.value||'').trim(),
+      jam    : (jamEl.value||nowTime()),
+      ket    : (ketEl.value||'').trim(),
+      nama   : (namaEl.value||'').trim(),
+      alasan : (alasanEl.value||'').trim()
+    };
+    const msg = `Reject\nBarang : ${r.barang}\nJam : ${r.jam}\nKet : ${r.ket}\nNama : ${r.nama}\nAlasan : ${r.alasan}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
+  });
+
+  // Init
+  renderList();
+</script>
+</body>
 </html>
