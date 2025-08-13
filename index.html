@@ -147,21 +147,24 @@ document.getElementById("fileInput").addEventListener("change", async function()
     if (!file) return;
     uploadedFile = file;
 
-    // Set jam otomatis
-    const now = new Date();
-    document.getElementById("jam").value = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'});
-
-    // Tampilkan loading
     document.getElementById("loading").style.display = "block";
 
-    // Jalankan OCR
     const { data: { text } } = await Tesseract.recognize(file, 'eng+ind');
     console.log(text);
 
-    // Sembunyikan loading
     document.getElementById("loading").style.display = "none";
 
-    // Parsing data (regex fleksibel)
+    // Cari jam dari screenshot (format HH:MM atau HH.MM)
+    let jamMatch = text.match(/\b([0-2]?\d[:.][0-5]\d)\b/);
+    if (jamMatch) {
+        document.getElementById("jam").value = jamMatch[1].replace('.', ':');
+    } else {
+        // fallback jam sistem
+        const now = new Date();
+        document.getElementById("jam").value = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'});
+    }
+
+    // Parsing data lain
     const alasanMatch = text.match(/Alasan\s*[:\-]?\s*(.*)/i);
     const ketMatch = text.match(/Keterangan\s*[:\-]?\s*(.*)/i);
     const barangMatch = text.match(/Barang\s*[:\-]?\s*(.*)/i);
@@ -170,7 +173,7 @@ document.getElementById("fileInput").addEventListener("change", async function()
     if (ketMatch) document.getElementById("keterangan").value = ketMatch[1].trim();
     if (barangMatch) document.getElementById("barang").value = barangMatch[1].trim();
 
-    // Auto copy caption setelah OCR
+    // Auto copy caption
     const autoCaption = `Barang : ${document.getElementById("barang").value}\nAlasan : ${document.getElementById("alasan").value}\nKeterangan : ${document.getElementById("keterangan").value}\nJam : ${document.getElementById("jam").value}\nPetugas : ${document.getElementById("nama").value}`;
     try {
         await navigator.clipboard.writeText(autoCaption);
@@ -189,12 +192,10 @@ document.getElementById("shareBtn").addEventListener("click", async () => {
 
     const caption = `Barang : ${barang}\nAlasan : ${alasan}\nKeterangan : ${ket}\nJam : ${jam}\nPetugas : ${nama}`;
 
-    // Simpan ke history
     historyData.push(caption);
     localStorage.setItem('rejectHistory', JSON.stringify(historyData));
     renderHistory();
 
-    // Auto copy caption ke clipboard
     try {
         await navigator.clipboard.writeText(caption);
         alert("Caption disalin ke clipboard ✅");
@@ -218,7 +219,6 @@ document.getElementById("shareBtn").addEventListener("click", async () => {
     }
 });
 
-// Tombol hapus history
 document.getElementById("clearHistoryBtn").addEventListener("click", () => {
     if (confirm("Apakah Anda yakin ingin menghapus semua history?")) {
         historyData = [];
