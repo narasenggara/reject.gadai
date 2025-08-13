@@ -1,0 +1,441 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAPORAN REJECT GADAI</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 15px;
+        background: #f5f6fa;
+        color: #333;
+    }
+    h2 {
+        text-align: center;
+        background: #ff4d4d;
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+    }
+    .container {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        max-width: 500px;
+        margin: auto;
+    }
+    label {
+        font-weight: bold;
+        margin-top: 10px;
+        display: block;
+    }
+    input, textarea {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+    button {
+        width: 100%;
+        background: #25D366;
+        color: white;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        margin-top: 15px;
+        cursor: pointer;
+    }
+    button:hover {
+        background: #1ebe5d;
+    }
+</style>
+</head>
+<body>
+
+<h2>LAPORAN REJECT GADAI</h2>
+
+<div class="container">
+    <label for="fileInput">Upload Invoice (gambar)</label>
+    <input type="file" id="fileInput" accept="image/*">
+
+    <label>Barang</label>
+    <input type="text" id="barang">
+
+    <label>Jam</label>
+    <input type="text" id="jam">
+
+    <label>Keterangan</label>
+    <input type="text" id="keterangan">
+
+    <label>Alasan</label>
+    <input type="text" id="alasan">
+
+    <label>Nama</label>
+    <input type="text" id="nama">
+
+    <button onclick="shareWA()">📤 Share ke WhatsApp</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+document.getElementById("fileInput").addEventListener("change", async function() {
+    const file = this.files[0];
+    if (!file) return;
+
+    // Set jam otomatis
+    const now = new Date();
+    document.getElementById("jam").value = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'});
+
+    // Jalankan OCR
+    const { data: { text } } = await Tesseract.recognize(file, 'eng');
+    console.log(text);
+
+    // Parsing data
+    const alasanMatch = text.match(/Alasan\s*(.*)/i);
+    const ketMatch = text.match(/Keterangan\s*(.*)/i);
+    const barangMatch = text.match(/Barang\s*(.*)/i);
+
+    if (alasanMatch) document.getElementById("alasan").value = alasanMatch[1].trim();
+    if (ketMatch) document.getElementById("keterangan").value = ketMatch[1].trim();
+    if (barangMatch) document.getElementById("barang").value = barangMatch[1].trim();
+});
+
+function shareWA() {
+    const barang = document.getElementById("barang").value;
+    const jam = document.getElementById("jam").value;
+    const ket = document.getElementById("keterangan").value;
+    const nama = document.getElementById("nama").value;
+    const alasan = document.getElementById("alasan").value;
+
+    const pesan = `Reject\nBarang : ${barang}\nJam : ${jam}\nKet : ${ket}\nNama : ${nama}\nAlasan : ${alasan}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(pesan)}`;
+    window.open(url, "_blank");
+}
+</script>
+
+</body>
+</html>ile.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:arrayBuf}).promise;
+    const page=await pdf.getPage(1);
+    const viewport=page.getViewport({scale:1.5});
+    canvas.width=viewport.width;canvas.height=viewport.height;
+    await page.render({canvasContext:ctx,viewport}).promise;
+  } else {
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url});
+    const scale=Math.min(1,1000/img.width);
+    canvas.width=img.width*scale;canvas.height=img.height*scale;
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  }
+}
+
+fileInput.addEventListener('change',async e=>{
+  loadedFile=e.target.files?.[0]||null;
+  if(loadedFile) await renderPreview(loadedFile);
+});
+
+processBtn.addEventListener('click',async()=>{
+  if(!loadedFile){alert('Pilih file dulu');return;}
+  progressEl.classList.remove('hidden');
+  try{
+    const dataURL=canvas.toDataURL('image/png');
+    const result=await Tesseract.recognize(dataURL,'eng',{logger:m=>{if(m.status==='recognizing text'){progressEl.textContent=`OCR ${(m.progress*100).toFixed(0)}%`}}});
+    const text=result.data.text||'';
+    fillForm(text);
+  }catch(err){alert('Gagal OCR');}
+  progressEl.classList.add('hidden');
+});
+
+function fillForm(text){
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  function getAfter(label){
+    const idx=lines.findIndex(l=>l.toLowerCase()===label.toLowerCase());
+    if(idx>=0 && lines[idx+1]) return lines[idx+1];
+    return '';
+  }
+  alasanEl.value=getAfter('Alasan');
+  ketEl.value=getAfter('Keterangan');
+  barangEl.value=getAfter('Barang');
+  if(!jamEl.value) jamEl.value=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+
+saveBtn.addEventListener('click',()=>{
+  const row={
+    id:crypto.randomUUID(),
+    tanggal:new Date().toLocaleDateString('id-ID'),
+    alasan:alasanEl.value.trim(),
+    barang:barangEl.value.trim(),
+    jam:jamEl.value.trim(),
+    ket:ketEl.value.trim(),
+    nama:namaEl.value.trim()
+  };
+  if(!row.barang||!row.jam){alert('Barang & Jam wajib diisi');return;}
+  const db=loadDB();db.push(row);saveDB(db);renderTable();
+});
+
+function renderTable(){
+  const db=loadDB();
+  reportBody.innerHTML='';
+  db.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class='border px-2 py-1'>${r.tanggal}</td>
+      <td class='border px-2 py-1'>${r.alasan}</td>
+      <td class='border px-2 py-1'>${r.barang}</td>
+      <td class='border px-2 py-1'>${r.jam}</td>
+      <td class='border px-2 py-1'>${r.ket}</td>
+      <td class='border px-2 py-1'>${r.nama}</td>
+      <td class='border px-2 py-1'><button onclick='shareWA("${r.id}")' class='text-blue-600 underline'>Share WA</button></td>`;
+    reportBody.appendChild(tr);
+  });
+}
+
+function shareWA(id){
+  const db=loadDB();
+  const r=db.find(x=>x.id===id);
+  if(!r) return;
+  const text=`Laporan Barang Masuk%0AAlasan: ${encodeURIComponent(r.alasan)}%0ABarang: ${encodeURIComponent(r.barang)}%0AJam: ${encodeURIComponent(r.jam)}%0AKeterangan: ${encodeURIComponent(r.ket)}%0ANama: ${encodeURIComponent(r.nama)}%0ATanggal: ${encodeURIComponent(r.tanggal)}`;
+  window.open(`https://wa.me/?text=${text}`,'_blank');
+}
+
+renderTable();
+</script></body>
+</html>yId('clearAllBtn');
+
+  let loadedFile = null; // File object
+  let loadedFilePreviewURL = null; // For images
+
+  function setProgress(show, msg = 'Memproses…') {
+    progressEl.classList.toggle('hidden', !show);
+    progressText.textContent = msg;
+  }
+
+  // Render selected file to canvas (image or PDF first page)
+  async function renderPreview(file) {
+    canvas.classList.remove('hidden');
+    previewImage.classList.add('hidden');
+
+    if (!file) return;
+
+    if (file.type === 'application/pdf') {
+      const arrayBuf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
+      const page = await pdf.getPage(1); // first page only for prototype
+      const viewport = page.getViewport({ scale: 1.5 });
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const renderContext = { canvasContext: ctx, viewport };
+      await page.render(renderContext).promise;
+    } else {
+      // image
+      const url = URL.createObjectURL(file);
+      loadedFilePreviewURL = url;
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve; img.onerror = reject; img.src = url;
+      });
+      // Fit image into canvas while maintaining aspect ratio
+      const maxW = 1000; const scale = Math.min(1, maxW / img.width);
+      canvas.width = img.width * scale; canvas.height = img.height * scale;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  fileInput.addEventListener('change', async (e) => {
+    loadedFile = e.target.files?.[0] || null;
+    if (loadedFile) {
+      await renderPreview(loadedFile);
+      metaEl.value = `File: ${loadedFile.name} | Ukuran: ${(loadedFile.size/1024).toFixed(1)} KB`;
+    }
+  });
+
+  processBtn.addEventListener('click', async () => {
+    if (!loadedFile) { alert('Pilih file invoice dulu.'); return; }
+    setProgress(true, 'Menjalankan OCR…');
+
+    try {
+      // Get image data from current canvas (already rendered either from img or PDF)
+      const dataURL = canvas.toDataURL('image/png');
+      const result = await Tesseract.recognize(dataURL, 'eng', {
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            setProgress(true, `OCR ${(m.progress*100).toFixed(0)}%`);
+          }
+        }
+      });
+      const text = result.data.text || '';
+      fillFormFromText(text);
+      setProgress(false);
+    } catch (err) {
+      console.error(err);
+      setProgress(false);
+      alert('Gagal OCR. Coba pastikan gambar jelas atau gunakan PDF/gambar resolusi lebih tinggi.');
+    }
+  });
+
+  clearFormBtn.addEventListener('click', () => {
+    barangEl.value = '';
+    jamEl.value = '';
+    ketEl.value = '';
+    namaEl.value = '';
+  });
+
+  function fillFormFromText(text) {
+    // Basic parsing heuristics for Indonesian invoices
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const full = lines.join('\n');
+
+    function findValue(keys, pattern) {
+      // Try label: value on same line
+      for (const line of lines) {
+        for (const key of keys) {
+          const m = line.match(new RegExp(`${key}\s*[:\-]\s*(.+)`, 'i'));
+          if (m) return m[1].trim();
+        }
+      }
+      // Try generic pattern
+      if (pattern) {
+        const m2 = full.match(pattern);
+        if (m2) return (m2[1] || m2[0]).trim();
+      }
+      return '';
+    }
+
+    // Barang / Nama Barang
+    const barang = findValue(['Barang', 'Nama Barang', 'Item', 'Produk'], /Barang\s*[:\-]\s*(.+)/i);
+
+    // Jam (HH:MM or HH.MM)
+    let jam = findValue(['Jam', 'Pukul', 'Waktu'], /(\b\d{1,2}[:\.]\d{2}\b)/);
+
+    // Ket / Keterangan
+    let ket = findValue(['Ket', 'Keterangan', 'Deskripsi'], /Keterangan\s*[:\-]\s*(.+)/i);
+
+    // Nama (petugas/customer)
+    let nama = findValue(['Nama', 'Petugas', 'Operator'], /Nama\s*[:\-]\s*(.+)/i);
+
+    // Fallbacks (try to guess from top lines)
+    if (!barang && lines.length) {
+      // Find a line near words related to product
+      const guess = lines.find(l => /barang|produk|item/i.test(l));
+      if (guess) { const m = guess.match(/[:\-]\s*(.+)$/); if (m) { jam = jam || ''; ket = ket || ''; nama = nama || ''; }}
+    }
+
+    barangEl.value = barang;
+    jamEl.value = jam;
+    ketEl.value = ket;
+    namaEl.value = nama;
+  }
+
+  function toISODateOnly(d = new Date()) {
+    const tzOffset = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - tzOffset * 60000);
+    return local.toISOString().slice(0,10);
+  }
+
+  function renderTable() {
+    const rows = loadDB();
+    const filter = filterDate.value || '';
+    reportBody.innerHTML = '';
+    rows
+      .filter(r => !filter || r.tanggal === filter)
+      .sort((a,b) => (a.tanggal + a.jam).localeCompare(b.tanggal + b.jam))
+      .forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = idx % 2 ? 'bg-white' : 'bg-gray-50';
+        tr.innerHTML = `
+          <td class="px-3 py-2">${r.tanggal}</td>
+          <td class="px-3 py-2">${escapeHtml(r.barang)}</td>
+          <td class="px-3 py-2">${escapeHtml(r.jam)}</td>
+          <td class="px-3 py-2">${escapeHtml(r.ket)}</td>
+          <td class="px-3 py-2">${escapeHtml(r.nama)}</td>
+          <td class="px-3 py-2">${escapeHtml(r.fileName || '')}</td>
+          <td class="px-3 py-2">
+            <button class="text-xs px-2 py-1 rounded-md border mr-1" data-action="wa" data-id="${r.id}">Share WA</button>
+            <button class="text-xs px-2 py-1 rounded-md border mr-1" data-action="edit" data-id="${r.id}">Edit</button>
+            <button class="text-xs px-2 py-1 rounded-md border text-red-700" data-action="del" data-id="${r.id}">Hapus</button>
+          </td>`;
+        reportBody.appendChild(tr);
+      });
+  }
+
+  function escapeHtml(s) { return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
+
+  saveBtn.addEventListener('click', () => {
+    const barang = barangEl.value.trim();
+    const jam = jamEl.value.trim();
+    const ket = ketEl.value.trim();
+    const nama = namaEl.value.trim();
+    if (!barang || !jam) { alert('Minimal isi Barang dan Jam.'); return; }
+    const rows = loadDB();
+    const row = {
+      id: crypto.randomUUID(),
+      tanggal: toISODateOnly(new Date()),
+      barang, jam, ket, nama,
+      fileName: loadedFile?.name || ''
+    };
+    rows.push(row); saveDB(rows); renderTable();
+    alert('Tersimpan ke laporan.');
+  });
+
+  reportBody.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.getAttribute('data-id');
+    const action = btn.getAttribute('data-action');
+    const rows = loadDB();
+    const idx = rows.findIndex(r => r.id === id);
+    if (idx < 0) return;
+
+    if (action === 'del') {
+      if (confirm('Hapus baris ini?')) { rows.splice(idx,1); saveDB(rows); renderTable(); }
+    }
+    if (action === 'edit') {
+      const r = rows[idx];
+      barangEl.value = r.barang; jamEl.value = r.jam; ketEl.value = r.ket; namaEl.value = r.nama;
+      alert('Data dimuat ke form. Edit lalu klik "Simpan" untuk menambah baris baru.');
+    }
+    if (action === 'wa') {
+      const r = rows[idx];
+      const text = `Laporan Barang Masuk%0ABarang: ${encodeURIComponent(r.barang)}%0AJam: ${encodeURIComponent(r.jam)}%0AKet: ${encodeURIComponent(r.ket)}%0ANama: ${encodeURIComponent(r.nama)}%0ATanggal: ${encodeURIComponent(r.tanggal)}%0AInvoice: ${encodeURIComponent(r.fileName || '-')}`;
+      const url = `https://wa.me/?text=${text}`;
+      window.open(url, '_blank');
+    }
+  });
+
+  todayBtn.addEventListener('click', () => {
+    filterDate.value = toISODateOnly(new Date());
+    renderTable();
+  });
+
+  filterDate.addEventListener('change', renderTable);
+
+  exportCsvBtn.addEventListener('click', () => {
+    const rows = loadDB();
+    const filter = filterDate.value || '';
+    const filtered = rows.filter(r => !filter || r.tanggal === filter);
+    const header = ['Tanggal','Barang','Jam','Ket','Nama','Invoice'];
+    const csv = [header.join(','), ...filtered.map(r => [r.tanggal, r.barang, r.jam, r.ket, r.nama, r.fileName||''].map(x => `"${(x||'').replace(/"/g,'""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `laporan_${filter || 'semua'}.csv`; a.click(); URL.revokeObjectURL(url);
+  });
+
+  clearAllBtn.addEventListener('click', () => {
+    if (confirm('Yakin hapus semua data laporan di perangkat ini?')) {
+      saveDB([]); renderTable();
+    }
+  });
+
+  // Init
+  (function init(){
+    filterDate.value = toISODateOnly(new Date());
+    renderTable();
+  })();
+</script></body>
+</html>
