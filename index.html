@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAPORAN REJECT GADAI</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 15px;
+        background: #f0f8ff;
+        color: #333;
+    }
+    h2 {
+        text-align: center;
+        background: #1e90ff;
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+    }
+    .container {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        max-width: 500px;
+        margin: auto;
+    }
+    label {
+        font-weight: bold;
+        margin-top: 10px;
+        display: block;
+    }
+    input {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+    button {
+        width: 100%;
+        background: #25D366;
+        color: white;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        margin-top: 15px;
+        cursor: pointer;
+    }
+    button:hover {
+        background: #1ebe5d;
+    }
+    #loading {
+        text-align: center;
+        display: none;
+        font-weight: bold;
+        margin-top: 10px;
+        color: #1e90ff;
+    }
+</style>
+</head>
+<body>
+
+<h2>LAPORAN REJECT GADAI</h2>
+
+<div class="container">
+    <label for="fileInput">Upload Invoice (gambar)</label>
+    <input type="file" id="fileInput" accept="image/*">
+
+    <label>Barang</label>
+    <input type="text" id="barang">
+
+    <label>Jam</label>
+    <input type="text" id="jam">
+
+    <label>Keterangan</label>
+    <input type="text" id="keterangan">
+
+    <label>Alasan</label>
+    <input type="text" id="alasan">
+
+    <label>Nama</label>
+    <input type="text" id="nama">
+
+    <button id="shareBtn">📤 Share ke WhatsApp</button>
+    <div id="loading">🔍 Membaca teks...</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+let uploadedFile = null;
+
+document.getElementById("fileInput").addEventListener("change", async function() {
+    const file = this.files[0];
+    if (!file) return;
+    uploadedFile = file;
+
+    // Set jam otomatis
+    const now = new Date();
+    document.getElementById("jam").value = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'});
+
+    // Tampilkan loading
+    document.getElementById("loading").style.display = "block";
+
+    // Jalankan OCR
+    const { data: { text } } = await Tesseract.recognize(file, 'eng+ind');
+    console.log(text);
+
+    // Sembunyikan loading
+    document.getElementById("loading").style.display = "none";
+
+    // Parsing data (regex fleksibel)
+    const alasanMatch = text.match(/Alasan\s*[:\-]?\s*(.*)/i);
+    const ketMatch = text.match(/Keterangan\s*[:\-]?\s*(.*)/i);
+    const barangMatch = text.match(/Barang\s*[:\-]?\s*(.*)/i);
+
+    if (alasanMatch) document.getElementById("alasan").value = alasanMatch[1].trim();
+    if (ketMatch) document.getElementById("keterangan").value = ketMatch[1].trim();
+    if (barangMatch) document.getElementById("barang").value = barangMatch[1].trim();
+});
+
+document.getElementById("shareBtn").addEventListener("click", async () => {
+    const barang = document.getElementById("barang").value;
+    const jam = document.getElementById("jam").value;
+    const ket = document.getElementById("keterangan").value;
+    const nama = document.getElementById("nama").value;
+    const alasan = document.getElementById("alasan").value;
+
+    const caption = `Reject\nBarang : ${barang}\nJam : ${jam}\nKet : ${ket}\nNama : ${nama}\nAlasan : ${alasan}`;
+
+    // Auto copy caption ke clipboard
+    try {
+        await navigator.clipboard.writeText(caption);
+        alert("Caption disalin ke clipboard ✅");
+    } catch (err) {
+        console.warn("Gagal menyalin caption:", err);
+    }
+
+    if (uploadedFile && navigator.canShare && navigator.canShare({ files: [uploadedFile] })) {
+        try {
+            await navigator.share({
+                files: [uploadedFile],
+                text: caption,
+                title: 'Laporan Reject Gadai'
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    } else {
+        const url = `https://wa.me/?text=${encodeURIComponent(caption)}`;
+        window.open(url, "_blank");
+    }
+});
+</script>
+
+</body>
+</html>
