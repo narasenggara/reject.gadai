@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAPORAN REJECT GADAI</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 15px;
+        background: #f0f6ff;
+        color: #333;
+    }
+    h2 {
+        text-align: center;
+        background: #007bff;
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+    }
+    .container {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        max-width: 500px;
+        margin: auto;
+    }
+    label {
+        font-weight: bold;
+        margin-top: 10px;
+        display: block;
+    }
+    input {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+    button {
+        width: 100%;
+        background: #007bff;
+        color: white;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        margin-top: 15px;
+        cursor: pointer;
+    }
+    button:hover {
+        background: #0056b3;
+    }
+    #preview {
+        max-width: 100%;
+        margin-top: 10px;
+        border-radius: 5px;
+        display: none;
+    }
+    .laporan {
+        background: #fff;
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 6px;
+        box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+    }
+    .laporan button {
+        background: red;
+        font-size: 14px;
+        padding: 5px;
+        margin-top: 8px;
+    }
+    /* Loading Spinner */
+    .loading {
+        display: none;
+        text-align: center;
+        margin-top: 10px;
+    }
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #007bff;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        vertical-align: middle;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+</head>
+<body>
+
+<h2>LAPORAN REJECT GADAI</h2>
+
+<div class="container">
+    <label for="fileInput">Upload Invoice (gambar)</label>
+    <input type="file" id="fileInput" accept="image/*">
+    <img id="preview">
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div> <span>🔍 Membaca teks...</span>
+    </div>
+
+    <label>Barang</label>
+    <input type="text" id="barang">
+
+    <label>Jam</label>
+    <input type="text" id="jam">
+
+    <label>Keterangan</label>
+    <input type="text" id="keterangan">
+
+    <label>Alasan</label>
+    <input type="text" id="alasan">
+
+    <label>Nama</label>
+    <input type="text" id="nama">
+
+    <button onclick="shareWA()">📤 Share ke WhatsApp</button>
+
+    <div id="laporanList"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+let laporanData = [];
+
+document.getElementById("fileInput").addEventListener("change", async function() {
+    const file = this.files[0];
+    if (!file) return;
+
+    // Preview gambar
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById("preview").src = e.target.result;
+        document.getElementById("preview").style.display = "block";
+    };
+    reader.readAsDataURL(file);
+
+    // Set jam otomatis
+    const now = new Date();
+    document.getElementById("jam").value = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'});
+
+    // Tampilkan loading
+    document.getElementById("loading").style.display = "block";
+
+    try {
+        const { data: { text } } = await Tesseract.recognize(file, 'eng+ind');
+
+        // Hilangkan loading
+        document.getElementById("loading").style.display = "none";
+
+        // Ambil hanya bagian penting
+        const barangMatch = text.match(/Barang\s*:?(.+)/i);
+        const ketMatch = text.match(/Keterangan\s*:?(.+)/i);
+        const alasanMatch = text.match(/Alasan\s*:?(.+)/i);
+
+        if (barangMatch) document.getElementById("barang").value = barangMatch[1].trim();
+        if (ketMatch) document.getElementById("keterangan").value = ketMatch[1].trim();
+        if (alasanMatch) document.getElementById("alasan").value = alasanMatch[1].trim();
+
+    } catch (err) {
+        document.getElementById("loading").style.display = "none";
+        alert("Gagal membaca teks: " + err);
+    }
+});
+
+function shareWA() {
+    const barang = document.getElementById("barang").value;
+    const jam = document.getElementById("jam").value;
+    const ket = document.getElementById("keterangan").value;
+    const nama = document.getElementById("nama").value;
+    const alasan = document.getElementById("alasan").value;
+
+    const pesan = `Reject\nBarang : ${barang}\nJam : ${jam}\nKet : ${ket}\nNama : ${nama}\nAlasan : ${alasan}`;
+    navigator.clipboard.writeText(pesan); // Auto copy caption
+
+    laporanData.push({ barang, jam, ket, nama, alasan });
+    renderLaporan();
+
+    const url = `https://wa.me/?text=${encodeURIComponent(pesan)}`;
+    window.open(url, "_blank");
+}
+
+function renderLaporan() {
+    const list = document.getElementById("laporanList");
+    list.innerHTML = "";
+    laporanData.forEach((lap, index) => {
+        const div = document.createElement("div");
+        div.className = "laporan";
+        div.innerHTML = `
+            <b>${lap.barang}</b><br>
+            Jam: ${lap.jam}<br>
+            Ket: ${lap.ket}<br>
+            Nama: ${lap.nama}<br>
+            Alasan: ${lap.alasan}<br>
+            <button onclick="hapusLaporan(${index})">Hapus</button>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function hapusLaporan(index) {
+    laporanData.splice(index, 1);
+    renderLaporan();
+}
+</script>
+
+</body>
+</html>
