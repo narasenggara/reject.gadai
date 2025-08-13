@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>LAPORAN REJECT GADAI</title>
+
+<!-- Tesseract OCR -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<style>
+  :root{
+    --bg:#eaf6ff;
+    --card:#ffffff;
+    --line:#d9ecff;
+    --text:#0f2545;
+    --muted:#5b6b86;
+    --accent:#1e73ff;
+    --accent-2:#00b4d8;
+    --danger:#e75c6b;
+    --radius:14px;
+    --shadow: 0 8px 22px rgba(30,115,255,0.06);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:clamp(12px,2.6vw,24px); background:var(--bg); color:var(--text);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .title{font-weight:800;font-size:clamp(18px,3.6vw,28px);background:linear-gradient(#e6f0ff,#dfeeff);padding:10px 14px;border-radius:12px;border:1px solid var(--line);box-shadow:var(--shadow)}
+  .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
+  .grid{display:grid;gap:12px}
+  .cols{grid-template-columns:1fr}
+  @media(min-width:880px){ .cols{grid-template-columns:1fr 420px} }
+  label{font-size:13px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px}
+  input, textarea, button{width:100%;border-radius:12px;border:1px solid var(--line);padding:12px 14px;font-size:15px}
+  textarea{min-height:88px;resize:vertical}
+  input:focus,textarea:focus{outline:2px solid #d6e7ff;background:#fcfeff}
+  .row{display:flex; gap:10px}
+  .row> *{flex:1}
+  .note{font-size:13px;color:var(--muted)}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+  .btn{cursor:pointer;font-weight:700}
+  .btn-primary{background:var(--accent);color:#fff;border:none}
+  .btn-ghost{background:#fff;color:var(--accent);border:1px solid #d6eaff}
+  .btn-danger{background:#fff;color:var(--danger);border:1px solid #ffdfe2}
+  .list{display:grid;gap:10px;margin-top:8px}
+  .item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}
+  .item h4{margin:0 0 6px 0;font-size:16px}
+  .sub{color:var(--muted);font-size:13px}
+  .progress{display:flex;align-items:center;gap:10px;color:var(--muted)}
+  .spin{width:16px;height:16px;border-radius:50%;border:3px solid #dfeeff;border-top-color:var(--accent);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">LAPORAN REJECT GADAI</div>
+      <div class="pill">Offline • File tidak di-upload</div>
+    </header>
+
+    <section class="grid cols" style="gap:14px">
+      <!-- Form & Upload -->
+      <div class="card grid">
+        <div>
+          <label for="invoice">Upload Invoice (gambar)</label>
+          <input id="invoice" type="file" accept="image/*" />
+          <div class="note" style="margin-top:8px">OCR akan membaca <b>hanya</b> <i>Barang</i>, <i>Keterangan</i>, dan <i>Alasan</i> dari gambar (kotak merah).</div>
+        </div>
+
+        <div id="ocrProgress" class="progress" style="display:none"><div class="spin"></div><div id="ocrText">Menjalankan OCR…</div></div>
+
+        <div>
+          <label>Barang</label>
+          <input id="barang" placeholder="Hasil OCR atau isi manual" />
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Jam</label>
+            <input id="jam" placeholder="HH:MM (otomatis pada upload)" />
+          </div>
+          <div>
+            <label>Nama</label>
+            <input id="nama" placeholder="Nama petugas (manual)" />
+          </div>
+        </div>
+
+        <div>
+          <label>Keterangan</label>
+          <textarea id="keterangan" placeholder="Hasil OCR untuk kolom keterangan (bisa diedit)"></textarea>
+        </div>
+
+        <div>
+          <label>Alasan</label>
+          <input id="alasan" placeholder="Hasil OCR atau isi manual" />
+        </div>
+
+        <div class="toolbar" style="margin-top:6px">
+          <button id="saveBtn" class="btn btn-primary">Simpan Laporan</button>
+          <button id="shareNow" class="btn btn-ghost">Share (Gambar + Caption)</button>
+        </div>
+      </div>
+
+      <!-- Daftar Laporan -->
+      <aside class="card grid">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:800">Laporan Tersimpan</div>
+          <div class="note">localStorage</div>
+        </div>
+        <div id="list" class="list"></div>
+      </aside>
+    </section>
+
+    <p class="note" style="margin-top:12px">Simpan file ini sebagai <b>index.html</b> di repository GitHub Pages (root) atau buka langsung di Chrome HP.</p>
+  </div>
+
+<script>
+/* ===== DB lokal ===== */
+const DB_KEY = 'reject_gadai_reports_v3';
+const loadDB = () => { try { return JSON.parse(localStorage.getItem(DB_KEY)||'[]'); } catch { return []; } };
+const saveDB = rows => localStorage.setItem(DB_KEY, JSON.stringify(rows));
+
+/* ===== Elemen ===== */
+const invoiceEl = document.getElementById('invoice');
+const barangEl  = document.getElementById('barang');
+const jamEl     = document.getElementById('jam');
+const namaEl    = document.getElementById('nama');
+const ketEl     = document.getElementById('keterangan');
+const alasanEl  = document.getElementById('alasan');
+const listEl    = document.getElementById('list');
+const saveBtn   = document.getElementById('saveBtn');
+const shareNow  = document.getElementById('shareNow');
+const ocrP      = document.getElementById('ocrProgress');
+const ocrText   = document.getElementById('ocrText');
+
+let uploadedFile = null;
+
+/* ===== util ===== */
+const nowTime = ()=> new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+const escapeHtml = s => (s||'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toDateISO = d=>{ const tz=d.getTimezoneOffset(); const local=new Date(d.getTime()-tz*60000); return local.toISOString().slice(0,10); };
+
+/* ===== OCR: hanya ambil 3 field ===== */
+invoiceEl.addEventListener('change', async (e)=>{
+  const f = e.target.files?.[0]; if(!f) return;
+  uploadedFile = f;
+
+  // set jam otomatis jika kosong
+  if(!jamEl.value) jamEl.value = nowTime();
+
+  // show progress
+  ocrP.style.display = 'flex'; ocrText.textContent = 'Menjalankan OCR...';
+
+  try{
+    // gunakan bahasa eng+ind agar lebih fleksibel
+    const res = await Tesseract.recognize(f, 'eng+ind', {
+      logger: m=>{
+        if(m.status === 'recognizing text') ocrText.textContent = `OCR ${(m.progress*100).toFixed(0)}%`;
+      }
+    });
+
+    const raw = (res?.data?.text || '').trim();
+    // ambil baris-baris (preserve newline untuk cara ambil)
+    const lines = raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    const full = lines.join('\n');
+
+    // regex longgar: cari label lalu ambil setelahnya (sampai newline)
+    const findLabel = (labels) => {
+      for(const lbl of labels){
+        // pola: "Label: value" atau "Label - value" atau "Label value" (value sampai newline)
+        const re1 = new RegExp(`${lbl}\\s*[:\\-]\\s*([^\\n\\r]+)`, 'i');
+        const re2 = new RegExp(`${lbl}\\s+([^\\n\\r]+)`, 'i');
+        let m = full.match(re1);
+        if(m && m[1]) return m[1].trim();
+        m = full.match(re2);
+        if(m && m[1]) return m[1].trim();
+      }
+      return '';
+    };
+
+    const guessedBarang = findLabel(['Barang','Produk','Item']);
+    const guessedKet    = findLabel(['Keterangan','Ket','Catatan']);
+    const guessedAlasan = findLabel(['Alasan','Alasan Reject','Reason','Alasan:']);
+
+    // isi hanya jika belum diisi manual (biar user nggak ketimpa)
+    if(guessedBarang) barangEl.value = guessedBarang;
+    if(guessedKet) ketEl.value = guessedKet;
+    else if(raw) ketEl.value = raw; // fallback: isi seluruh OCR ke keterangan jika tidak ada label keterangan
+    if(guessedAlasan) alasanEl.value = guessedAlasan;
+
+  }catch(err){
+    console.error(err);
+    alert('Gagal OCR. Coba foto yang lebih jelas atau ulangi upload.');
+  }finally{
+    ocrP.style.display = 'none';
+  }
+});
+
+/* ===== Render list ===== */
+function renderList(){
+  const rows = loadDB();
+  listEl.innerHTML = '';
+  if(!rows.length){
+    const e = document.createElement('div'); e.className='note'; e.textContent='Belum ada laporan.'; listEl.appendChild(e); return;
+  }
+  rows.slice().reverse().forEach((r, idx)=>{
+    const div = document.createElement('div'); div.className='item';
+    div.innerHTML = `
+      <h4>${escapeHtml(r.barang||'(Tidak ada nama)')}</h4>
+      <div class="sub">Tanggal: ${r.tanggal} • Jam: ${escapeHtml(r.jam||'-')}</div>
+      <div class="sub">Ket: ${escapeHtml(r.ket||'-')}</div>
+      <div class="sub">Alasan: ${escapeHtml(r.alasan||'-')}</div>
+      <div class="sub">Nama: ${escapeHtml(r.nama||'-')}</div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick='shareText(${JSON.stringify(r)})'>Share (Teks)</button>
+        <button class="btn btn-danger" onclick="delItem(${idx})">Hapus</button>
+      </div>
+    `;
+    listEl.appendChild(div);
+  });
+}
+
+/* ===== Actions ===== */
+saveBtn.addEventListener('click', ()=>{
+  const nama = (namaEl.value||'').trim();
+  const barang = (barangEl.value||'').trim();
+  const jam = (jamEl.value||nowTime());
+  const ket = (ketEl.value||'').trim();
+  const alasan = (alasanEl.value||'').trim();
+
+  if(!nama){ alert('Nama wajib diisi'); return; }
+  if(!barang){ alert('Barang wajib diisi'); return; }
+
+  const row = { tanggal: toDateISO(new Date()), barang, jam, ket, nama, alasan };
+  const rows = loadDB(); rows.push(row); saveDB(rows);
+  // reset some fields but keep nama for convenience
+  barangEl.value=''; ketEl.value=''; alasanEl.value='';
+  renderList();
+  alert('Tersimpan.');
+});
+
+/* Share current with image + caption via Web Share API v2 (jika tersedia), fallback ke wa.me teks */
+shareNow.addEventListener('click', async ()=>{
+  const barang = (barangEl.value||'').trim();
+  const jam = (jamEl.value||nowTime());
+  const ket = (ketEl.value||'').trim();
+  const nama = (namaEl.value||'').trim();
+  const alasan = (alasanEl.value||'').trim();
+
+  const caption = `Reject\nBarang : ${barang}\nJam : ${jam}\nKet : ${ket}\nNama : ${nama}\nAlasan : ${alasan}`;
+
+  if (uploadedFile && navigator.canShare && navigator.canShare({ files: [uploadedFile] })) {
+    try {
+      await navigator.share({
+        files: [uploadedFile],
+        text: caption,
+        title: 'Laporan Reject Gadai'
+      });
+    } catch(err){
+      console.error(err);
+      alert('Share dibatalkan atau gagal. Coba lagi.');
+    }
+  } else {
+    // fallback: share teks via wa.me
+    const url = `https://wa.me/?text=${encodeURIComponent(caption)}`;
+    window.open(url, '_blank');
+  }
+});
+
+/* share saved item as text only (no image) */
+function shareText(r){
+  const caption = `Reject\nBarang : ${r.barang}\nJam : ${r.jam}\nKet : ${r.ket}\nNama : ${r.nama}\nAlasan : ${r.alasan}`;
+  const url = `https://wa.me/?text=${encodeURIComponent(caption)}`;
+  window.open(url, '_blank');
+}
+
+/* delete item by reverse index (renderList uses reversed view) */
+function delItem(reverseIdx){
+  // Because renderList uses slice().reverse(), the idx corresponds to reversed array index
+  const rows = loadDB();
+  const realIdx = rows.length - 1 - reverseIdx;
+  if(!confirm('Hapus laporan ini?')) return;
+  rows.splice(realIdx,1); saveDB(rows); renderList();
+}
+
+function delItemByIndex(i){
+  const rows = loadDB(); rows.splice(i,1); saveDB(rows); renderList();
+}
+
+/* fallback function for onclick in template */
+window.delItem = delItem;
+
+/* init */
+renderList();
+</script>
+</body>
+</html>
