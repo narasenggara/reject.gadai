@@ -60,6 +60,13 @@
     button:hover {
         background: #1ebe5d;
     }
+    #clearHistoryBtn {
+        background: #ff4d4f;
+        margin-top: 5px;
+    }
+    #clearHistoryBtn:hover {
+        background: #d9363e;
+    }
     #loading {
         text-align: center;
         display: none;
@@ -96,16 +103,16 @@
     <label>Barang</label>
     <input type="text" id="barang">
 
-    <label>Jam</label>
-    <input type="text" id="jam">
+    <label>Alasan</label>
+    <input type="text" id="alasan">
 
     <label>Keterangan</label>
     <input type="text" id="keterangan">
 
-    <label>Alasan</label>
-    <input type="text" id="alasan">
+    <label>Jam</label>
+    <input type="text" id="jam">
 
-    <label>Nama</label>
+    <label>Petugas</label>
     <input type="text" id="nama">
 
     <button id="shareBtn">📤 Share ke WhatsApp</button>
@@ -114,6 +121,7 @@
 
 <div id="history">
     <h3>📜 History Laporan Reject</h3>
+    <button id="clearHistoryBtn">🗑 Hapus History</button>
     <ul id="historyList"></ul>
 </div>
 
@@ -163,7 +171,7 @@ document.getElementById("fileInput").addEventListener("change", async function()
     if (barangMatch) document.getElementById("barang").value = barangMatch[1].trim();
 
     // Auto copy caption setelah OCR
-    const autoCaption = `Reject\nBarang : ${document.getElementById("barang").value}\nJam : ${document.getElementById("jam").value}\nKet : ${document.getElementById("keterangan").value}\nNama : ${document.getElementById("nama").value}\nAlasan : ${document.getElementById("alasan").value}`;
+    const autoCaption = `Barang : ${document.getElementById("barang").value}\nAlasan : ${document.getElementById("alasan").value}\nKeterangan : ${document.getElementById("keterangan").value}\nJam : ${document.getElementById("jam").value}\nPetugas : ${document.getElementById("nama").value}`;
     try {
         await navigator.clipboard.writeText(autoCaption);
         console.log("Caption otomatis disalin ke clipboard ✅");
@@ -174,12 +182,12 @@ document.getElementById("fileInput").addEventListener("change", async function()
 
 document.getElementById("shareBtn").addEventListener("click", async () => {
     const barang = document.getElementById("barang").value;
-    const jam = document.getElementById("jam").value;
-    const ket = document.getElementById("keterangan").value;
-    const nama = document.getElementById("nama").value;
     const alasan = document.getElementById("alasan").value;
+    const ket = document.getElementById("keterangan").value;
+    const jam = document.getElementById("jam").value;
+    const nama = document.getElementById("nama").value;
 
-    const caption = `Reject\nBarang : ${barang}\nJam : ${jam}\nKet : ${ket}\nNama : ${nama}\nAlasan : ${alasan}`;
+    const caption = `Barang : ${barang}\nAlasan : ${alasan}\nKeterangan : ${ket}\nJam : ${jam}\nPetugas : ${nama}`;
 
     // Simpan ke history
     historyData.push(caption);
@@ -207,6 +215,15 @@ document.getElementById("shareBtn").addEventListener("click", async () => {
     } else {
         const url = `https://wa.me/?text=${encodeURIComponent(caption)}`;
         window.open(url, "_blank");
+    }
+});
+
+// Tombol hapus history
+document.getElementById("clearHistoryBtn").addEventListener("click", () => {
+    if (confirm("Apakah Anda yakin ingin menghapus semua history?")) {
+        historyData = [];
+        localStorage.removeItem('rejectHistory');
+        renderHistory();
     }
 });
 </script>
